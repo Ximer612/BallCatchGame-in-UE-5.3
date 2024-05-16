@@ -10,9 +10,9 @@
 struct FAivState : public TSharedFromThis<FAivState>
 {
 private:
-	TFunction<void(AAIController*)> Enter;
-	TFunction<void(AAIController*)> Exit;
-	TFunction<TSharedPtr<FAivState>(AAIController*, const float)> Tick;
+	TFunction<void(AAIController*, UBlackboardComponent*)> Enter;
+	TFunction<void(AAIController*, UBlackboardComponent*)> Exit;
+	TFunction<TSharedPtr<FAivState>(AAIController*, UBlackboardComponent*, const float)> Tick;
 public:
 
 	FAivState()
@@ -22,7 +22,7 @@ public:
 		Tick = nullptr;
 	}
 
-	FAivState(TFunction<void(AAIController*)> InEnter = nullptr, TFunction<void(AAIController*)> InExit = nullptr, TFunction<TSharedPtr<FAivState>(AAIController*, const float)> InTick = nullptr)
+	FAivState(TFunction<void(AAIController*, UBlackboardComponent*)> InEnter = nullptr, TFunction<void(AAIController*, UBlackboardComponent*)> InExit = nullptr, TFunction<TSharedPtr<FAivState>(AAIController*, UBlackboardComponent*, const float)> InTick = nullptr)
 	{
 		Enter = InEnter;
 		Exit = InExit;
@@ -34,32 +34,32 @@ public:
 	FAivState(FAivState&& Other) = delete;
 	FAivState& operator=(FAivState&& Other) = delete;
 
-	void CallEnter(AAIController* AIController)
+	void CallEnter(AAIController* AIController, UBlackboardComponent* Blackboard)
 	{
 		if (Enter)
 		{
-			Enter(AIController);
+			Enter(AIController, Blackboard);
 		}
 	}
 
-	void CallExit(AAIController* AIController)
+	void CallExit(AAIController* AIController, UBlackboardComponent* Blackboard)
 	{
 		if (Exit)
 		{
-			Exit(AIController);
+			Exit(AIController, Blackboard);
 		}
 	}
 
-	TSharedPtr<FAivState> CallTick(AAIController* AIController, const float DeltaTime)
+	TSharedPtr<FAivState> CallTick(AAIController* AIController, UBlackboardComponent* Blackboard, const float DeltaTime)
 	{
 		if (Tick)
 		{
-			TSharedPtr<FAivState> NewState = Tick(AIController, DeltaTime);
+			TSharedPtr<FAivState> NewState = Tick(AIController, Blackboard, DeltaTime);
 
 			if (NewState != nullptr && NewState != AsShared())
 			{
-				CallExit(AIController);
-				NewState->CallEnter(AIController);
+				CallExit(AIController, Blackboard);
+				NewState->CallEnter(AIController, Blackboard);
 				return NewState;
 			}
 		}
@@ -96,4 +96,5 @@ protected:
 	TObjectPtr<UBlackboardData> BlackboardData;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<class UBlackboardKeyType_Object> BestBallType;
+
 };

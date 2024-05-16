@@ -14,6 +14,8 @@ class ABallCatchGameGameMode : public AGameModeBase
 	GENERATED_BODY()
 
 protected:
+	float AttachBallZOffset = 40.0f;
+
 	TArray<class ATargetPoint*> TargetPoints;
 	TArray<class ABall*> GameBalls;
 
@@ -24,10 +26,11 @@ public:
 
 	void BeginPlay() override;
 	void Tick(float DeltaTime) override;
-
+	float GetAttachBallOffset();
 	const TArray<class ABall*>& GetGameBalls() const;
 
 	FResetMatchDelegate OnResetMatch;
+
 
 };
 

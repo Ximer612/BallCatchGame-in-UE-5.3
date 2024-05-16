@@ -12,6 +12,7 @@ AEnemyAIController::AEnemyAIController()
 	UBlackboardComponent* ReturnComponent;
 	Blackboard = CreateDefaultSubobject<UBlackboardComponent>(TEXT("BlackboardComp"));
 
+	//ADD BEST BALL ENTRY TO BLACKBOARD DATA
 	BlackboardData = NewObject<UBlackboardData>();
 	BestBallType = NewObject<UBlackboardKeyType_Object>();
 	BestBallType->BaseClass = AActor::StaticClass();
@@ -19,6 +20,7 @@ AEnemyAIController::AEnemyAIController()
 	BestBallEntry.EntryName = "BestBall";
 	BestBallEntry.KeyType = BestBallType;
 	BlackboardData->Keys.Add(std::move(BestBallEntry));
+	//
 
 	UseBlackboard(BlackboardData, ReturnComponent);
 	Blackboard = ReturnComponent;
@@ -29,30 +31,37 @@ void AEnemyAIController::BeginPlay()
 	Super::BeginPlay();
 
 	GoToPlayer = MakeShared<FAivState>(
-		[this](AAIController* AIController) {
+		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
 			AIController->MoveToActor(AIController->GetWorld()->GetFirstPlayerController()->GetPawn(), 10.0f);
 
 			//AIController->ReceiveMoveCompleted.Add( (*SearchForBall).CallEnter(AIController));
 		},
 		nullptr,
-		[this](AAIController* AIController, const float DeltaTime) -> TSharedPtr<FAivState> {
+		[this](AAIController* AIController, UBlackboardComponent* InBlackboard, const float DeltaTime) -> TSharedPtr<FAivState> {
 			EPathFollowingStatus::Type State = AIController->GetMoveStatus();
 
 			if (State == EPathFollowingStatus::Moving)
 			{
 				return nullptr;
 			}
+
+			// add that the player can get a ball, enemy run away
+			
 			//FAIRequestID RequestID;
 			//const FPathFollowingResult Result(EPathFollowingResult::Aborted,FPathFollowingResultFlags::None);
 			//AIController->OnMoveCompleted(RequestID, Result)
 
-			UObject* BestBall = Blackboard->GetValueAsObject("BestBall");
+			UObject* BestBall = InBlackboard->GetValueAsObject("BestBall");
 
 			if (BestBall)
 			{
 				AActor* BallActor = Cast<AActor>(BestBall);
 				BallActor->AttachToActor(AIController->GetWorld()->GetFirstPlayerController()->GetPawn(), FAttachmentTransformRules::KeepRelativeTransform, TEXT("hand_r"));
-				BallActor->SetActorRelativeLocation(FVector(0, 0, 0));
+				
+				AGameModeBase* GameMode = AIController->GetWorld()->GetAuthGameMode();
+				ABallCatchGameGameMode* AIGameMode = Cast<ABallCatchGameGameMode>(GameMode);
+				
+				BallActor->SetActorRelativeLocation(FVector(0, 0, AIGameMode->GetAttachBallOffset()));
 			}
 
 			return SearchForBall;
@@ -60,7 +69,7 @@ void AEnemyAIController::BeginPlay()
 	);
 
 	SearchForBall = MakeShared<FAivState>(
-		[this](AAIController* AIController) {
+		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
 			AGameModeBase* GameMode = AIController->GetWorld()->GetAuthGameMode();
 			ABallCatchGameGameMode* AIGameMode = Cast<ABallCatchGameGameMode>(GameMode);
 			const TArray<ABall*>& BallsList = AIGameMode->GetGameBalls();
@@ -78,15 +87,15 @@ void AEnemyAIController::BeginPlay()
 				}
 			}
 
-			Blackboard->SetValueAsObject("BestBall", NearestBall);
+			InBlackboard->SetValueAsObject("BestBall", NearestBall);
 			//UE_LOG(LogTemp, Warning, TEXT("BestBall = %p"), Blackboard->GetValueAsObject("BestBall"));
 
-			Blackboard->SetValueAsObject("BestBall", NearestBall);
+			InBlackboard->SetValueAsObject("BestBall", NearestBall);
 		},
 		nullptr,
-		[this](AAIController* AIController, const float DeltaTime) -> TSharedPtr<FAivState> {
+		[this](AAIController* AIController, UBlackboardComponent* InBlackboard, const float DeltaTime) -> TSharedPtr<FAivState> {
 
-			if (Blackboard->GetValueAsObject("BestBall"))
+			if (InBlackboard->GetValueAsObject("BestBall"))
 			{
 				return GoToBall;
 			}
@@ -97,18 +106,18 @@ void AEnemyAIController::BeginPlay()
 	);
 
 	GoToBall = MakeShared<FAivState>(
-		[this](AAIController* AIController) {
-			UObject* BestBall = Blackboard->GetValueAsObject("BestBall");
+		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
+			UObject* BestBall = InBlackboard->GetValueAsObject("BestBall");
 			AActor* BallActor = Cast<AActor>(BestBall);
 			AIController->MoveToActor(BallActor, 100.0f);
 		},
 		nullptr,
-		[this](AAIController* AIController, const float DeltaTime) -> TSharedPtr<FAivState> {
+		[this](AAIController* AIController, UBlackboardComponent* InBlackboard, const float DeltaTime) -> TSharedPtr<FAivState> {
 			EPathFollowingStatus::Type State = AIController->GetMoveStatus();
 
 			if (State == EPathFollowingStatus::Moving)
 			{
-				UObject* BestBall = Blackboard->GetValueAsObject("BestBall");
+				UObject* BestBall = InBlackboard->GetValueAsObject("BestBall");
 				AActor* BallActor = Cast<AActor>(BestBall);
 
 				if (BallActor->GetAttachParentActor())
@@ -123,19 +132,19 @@ void AEnemyAIController::BeginPlay()
 	);
 
 	GrabBall = MakeShared<FAivState>(
-		[this](AAIController* AIController)
+		[](AAIController* AIController, UBlackboardComponent* InBlackboard)
 		{
-			UObject* BestBall = Blackboard->GetValueAsObject("BestBall");
+			UObject* BestBall = InBlackboard->GetValueAsObject("BestBall");
 			AActor* BallActor = Cast<AActor>(BestBall);
 			if (BallActor->GetAttachParentActor())
 			{
-				Blackboard->SetValueAsObject("BestBall", nullptr);
+				InBlackboard->SetValueAsObject("BestBall", nullptr);
 			}
 		},
 		nullptr,
-		[this](AAIController* AIController, const float DeltaTime) -> TSharedPtr<FAivState> {
+		[this](AAIController* AIController, UBlackboardComponent* InBlackboard, const float DeltaTime) -> TSharedPtr<FAivState> {
 
-			UObject* BestBall = Blackboard->GetValueAsObject("BestBall");
+			UObject* BestBall = InBlackboard->GetValueAsObject("BestBall");
 			if (!BestBall)
 			{
 				return SearchForBall;
@@ -149,12 +158,10 @@ void AEnemyAIController::BeginPlay()
 		}
 	);
 
-
-
 	StartLocation = GetPawn()->GetActorLocation();
 
 	GoToStartPosition = MakeShared<FAivState>(
-		[this](AAIController* AIController) {
+		[this](AAIController* AIController, UBlackboardComponent* InBlackboard) {
 			AIController->MoveToLocation(StartLocation, 250.0f);
 		},
 		nullptr,
@@ -167,11 +174,11 @@ void AEnemyAIController::BeginPlay()
 	AIGameMode->OnResetMatch.AddLambda(
 		[this]() -> void {
 			CurrentState = SearchForBall;
-			CurrentState->CallEnter(this);
+			CurrentState->CallEnter(this, Blackboard);
 		});
 
 	CurrentState = SearchForBall;
-	CurrentState->CallEnter(this);
+	CurrentState->CallEnter(this, Blackboard);
 }
 
 void AEnemyAIController::Tick(float DeltaTime)
@@ -180,7 +187,7 @@ void AEnemyAIController::Tick(float DeltaTime)
 
 	if (CurrentState)
 	{
-		CurrentState = CurrentState->CallTick(this, DeltaTime);
+		CurrentState = CurrentState->CallTick(this,Blackboard, DeltaTime);
 	}
 
 }

@@ -41,6 +41,12 @@ void ABallCatchGameGameMode::Tick(float DeltaTime)
 	ResetMatch();
 }
 
+float ABallCatchGameGameMode::GetAttachBallOffset()
+{
+	AttachBallZOffset += 40.0f;
+	return AttachBallZOffset - 40.0f;
+}
+
 const TArray<class ABall*>& ABallCatchGameGameMode::GetGameBalls() const
 {
 	return GameBalls;
@@ -48,6 +54,7 @@ const TArray<class ABall*>& ABallCatchGameGameMode::GetGameBalls() const
 
 void ABallCatchGameGameMode::ResetMatch()
 {
+	AttachBallZOffset = 0.f;
 	TargetPoints.Empty();
 	GameBalls.Empty();
 
@@ -67,8 +74,9 @@ void ABallCatchGameGameMode::ResetMatch()
 	for (int32 i = 0; i < GameBalls.Num(); i++)
 	{
 		const int32 RandomTargetIndex = FMath::RandRange(0, RandomTargetPoints.Num() - 1);
+		GameBalls[i]->SetActorLocation(RandomTargetPoints[RandomTargetIndex]->GetActorLocation());
+		UE_LOG(LogTemp, Warning, TEXT("Random number -> %d random target -> %p"), RandomTargetIndex, RandomTargetPoints[RandomTargetIndex]);
 		RandomTargetPoints.RemoveAt(RandomTargetIndex);
-		GameBalls[i]->SetActorLocation(TargetPoints[RandomTargetIndex]->GetActorLocation());
 	}
 
 	OnResetMatch.Broadcast();
