@@ -7,6 +7,7 @@
 #include "Ball.h"
 #include "Engine/TargetPoint.h"
 
+
 ABallCatchGameGameMode::ABallCatchGameGameMode()
 {
 	// set default pawn class to our Blueprinted character
@@ -40,14 +41,13 @@ void ABallCatchGameGameMode::Tick(float DeltaTime)
 	ResetMatch();
 }
 
-const TArray<class ABall*>& ABallCatchGameGameMode::GetBalls() const
+const TArray<class ABall*>& ABallCatchGameGameMode::GetGameBalls() const
 {
 	return GameBalls;
 }
 
 void ABallCatchGameGameMode::ResetMatch()
 {
-
 	TargetPoints.Empty();
 	GameBalls.Empty();
 
@@ -58,11 +58,7 @@ void ABallCatchGameGameMode::ResetMatch()
 
 	for (TActorIterator<ABall> It(GetWorld()); It; ++It)
 	{
-		if (It->GetAttachParentActor())
-		{
-			It->AttachToActor(nullptr, FAttachmentTransformRules::KeepWorldTransform);
-		}
-
+		It->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 		GameBalls.Add(*It);
 	}
 
@@ -71,9 +67,9 @@ void ABallCatchGameGameMode::ResetMatch()
 	for (int32 i = 0; i < GameBalls.Num(); i++)
 	{
 		const int32 RandomTargetIndex = FMath::RandRange(0, RandomTargetPoints.Num() - 1);
-		GameBalls[i]->SetActorLocation(TargetPoints[RandomTargetIndex]->GetActorLocation());
 		RandomTargetPoints.RemoveAt(RandomTargetIndex);
+		GameBalls[i]->SetActorLocation(TargetPoints[RandomTargetIndex]->GetActorLocation());
 	}
 
-
+	OnResetMatch.Broadcast();
 }

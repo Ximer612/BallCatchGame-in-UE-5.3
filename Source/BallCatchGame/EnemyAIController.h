@@ -82,12 +82,15 @@ protected:
 	TSharedPtr<FAivState> GoToBall;
 	TSharedPtr<FAivState> GrabBall;
 	TSharedPtr<FAivState> SearchForBall;
+	TSharedPtr<FAivState> GoToStartPosition;
 
 	AEnemyAIController();
 	void BeginPlay() override;
 	void Tick(float DeltaTime) override;
 
-	class ABall* BestBall;
+	//class ABall* BestBall;
+
+	FVector StartLocation;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UBlackboardData> BlackboardData;

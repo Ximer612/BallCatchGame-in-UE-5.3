@@ -6,6 +6,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "BallCatchGameGameMode.generated.h"
 
+DECLARE_MULTICAST_DELEGATE(FResetMatchDelegate)
+
 UCLASS(minimalapi)
 class ABallCatchGameGameMode : public AGameModeBase
 {
@@ -23,7 +25,9 @@ public:
 	void BeginPlay() override;
 	void Tick(float DeltaTime) override;
 
-	const TArray<class ABall*>& GetBalls() const;
+	const TArray<class ABall*>& GetGameBalls() const;
+
+	FResetMatchDelegate OnResetMatch;
 
 };
 
