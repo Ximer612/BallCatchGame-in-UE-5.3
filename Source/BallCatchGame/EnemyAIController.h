@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "EnemyAIController.generated.h"
 
 struct FAivState : public TSharedFromThis<FAivState>
@@ -82,8 +83,14 @@ protected:
 	TSharedPtr<FAivState> GrabBall;
 	TSharedPtr<FAivState> SearchForBall;
 
+	AEnemyAIController();
 	void BeginPlay() override;
 	void Tick(float DeltaTime) override;
 
 	class ABall* BestBall;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UBlackboardData> BlackboardData;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<class UBlackboardKeyType_Object> BestBallType;
 };

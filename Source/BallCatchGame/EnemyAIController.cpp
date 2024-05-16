@@ -5,10 +5,28 @@
 #include "Ball.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "BallCatchGameGameMode.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
+
+
+AEnemyAIController::AEnemyAIController()
+{
+	UBlackboardComponent* ReturnComponent;
+	Blackboard = CreateDefaultSubobject<UBlackboardComponent>(TEXT("BlackboardComp"));
+	BlackboardData = CreateDefaultSubobject<UBlackboardData>(TEXT("BlackboardData"));
+	BestBallType = CreateDefaultSubobject<UBlackboardKeyType_Object>(TEXT("BestBall"));
+	FBlackboardEntry TestIntEntry;
+	TestIntEntry.EntryName = "BestBall";
+	TestIntEntry.KeyType = BestBallType;
+	BlackboardData->Keys.Add(std::move(TestIntEntry));
+	UseBlackboard(BlackboardData, ReturnComponent);
+	Blackboard = ReturnComponent;
+}
 
 void AEnemyAIController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	UE_LOG(LogTemp, Warning, TEXT("SelfActor = %d"), Blackboard->GetValueAsObject("SelfActor"));
 
 	GoToPlayer = MakeShared<FAivState>(
 		[](AAIController* AIController) {
@@ -25,7 +43,7 @@ void AEnemyAIController::BeginPlay()
 
 			if (BestBall)
 			{
-				BestBall->AttachToActor(AIController->GetWorld()->GetFirstPlayerController()->GetPawn(), FAttachmentTransformRules::KeepRelativeTransform);
+				BestBall->AttachToActor(AIController->GetWorld()->GetFirstPlayerController()->GetPawn(), FAttachmentTransformRules::KeepRelativeTransform, TEXT("hand_r"));
 				BestBall->SetActorRelativeLocation(FVector(0, 0, 0));
 				BestBall = nullptr;
 			}
@@ -51,6 +69,9 @@ void AEnemyAIController::BeginPlay()
 					NearestBall = BallsList[i];
 				}
 			}
+
+			Blackboard->SetValueAsObject("BestBall", NearestBall);
+			UE_LOG(LogTemp, Warning, TEXT("BestBall = %p"), Blackboard->GetValueAsObject("BestBall"));
 
 			BestBall = NearestBall;
 		},
@@ -98,7 +119,7 @@ void AEnemyAIController::BeginPlay()
 				return SearchForBall;
 			}
 
-			BestBall->AttachToActor(AIController->GetPawn(), FAttachmentTransformRules::KeepRelativeTransform);
+			BestBall->AttachToActor(AIController->GetPawn(), FAttachmentTransformRules::KeepRelativeTransform, TEXT("hand_r"));
 			BestBall->SetActorRelativeLocation(FVector(0, 0, 0));
 
 			return GoToPlayer;
