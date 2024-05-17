@@ -6,20 +6,31 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "BallCatchGameGameMode.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Enum.h"
+#include "NavigationSystem.h"
 
 AEnemyAIController::AEnemyAIController()
 {
 	UBlackboardComponent* ReturnComponent;
 	Blackboard = CreateDefaultSubobject<UBlackboardComponent>(TEXT("BlackboardComp"));
 
-	//ADD BEST BALL ENTRY TO BLACKBOARD DATA
+	//ADD ENTRIES TO BLACKBOARD DATA
 	BlackboardData = NewObject<UBlackboardData>();
+
 	BestBallType = NewObject<UBlackboardKeyType_Object>();
 	BestBallType->BaseClass = AActor::StaticClass();
 	FBlackboardEntry BestBallEntry;
 	BestBallEntry.EntryName = "BestBall";
 	BestBallEntry.KeyType = BestBallType;
 	BlackboardData->Keys.Add(std::move(BestBallEntry));
+
+	PathFollowingType = NewObject<UBlackboardKeyType_Enum>();
+	PathFollowingType->EnumType = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingResult"), true);
+	FBlackboardEntry PathFollowingEntry;
+	PathFollowingEntry.EntryName = "PathResult";
+	PathFollowingEntry.KeyType = PathFollowingType;
+	BlackboardData->Keys.Add(std::move(PathFollowingEntry));
+
 	//
 
 	UseBlackboard(BlackboardData, ReturnComponent);
@@ -34,7 +45,7 @@ void AEnemyAIController::BeginPlay()
 
 	GoToPlayer = MakeShared<FAivState>(
 		[this](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			AIController->MoveToActor(AIController->GetWorld()->GetFirstPlayerController()->GetPawn(), 10.0f);
+			AIController->MoveToActor(AIController->GetWorld()->GetFirstPlayerController()->GetPawn(), 5.0f);
 
 
 		},
@@ -47,33 +58,31 @@ void AEnemyAIController::BeginPlay()
 				return nullptr;
 			}
 
-			//UE_LOG(LogTemp, Warning, TEXT("Variabile: %s"), State);
-
-			// add that the player can get a ball, enemy run away
-			
-			//FAIRequestID RequestID;
-			//const FPathFollowingResult Result(EPathFollowingResult::Aborted,FPathFollowingResultFlags::None);
-			//AIController->OnMoveCompleted(RequestID, Result)
-
-			UObject* BestBall = InBlackboard->GetValueAsObject("BestBall");
-
-			if (BestBall)
+			if (InBlackboard->GetValueAsEnum("PathResult") == EPathFollowingResult::Success)
 			{
-				AActor* BallActor = Cast<AActor>(BestBall);
-				BallActor->AttachToActor(AIController->GetWorld()->GetFirstPlayerController()->GetPawn(), FAttachmentTransformRules::KeepRelativeTransform, TEXT("hand_r"));
+				UObject* BestBall = InBlackboard->GetValueAsObject("BestBall");
+
+				if (BestBall)
+				{
+					AActor* BallActor = Cast<AActor>(BestBall);
+					BallActor->AttachToActor(AIController->GetWorld()->GetFirstPlayerController()->GetPawn(), FAttachmentTransformRules::KeepRelativeTransform, TEXT("hand_r"));
 				
-				AGameModeBase* GameMode = AIController->GetWorld()->GetAuthGameMode();
-				ABallCatchGameGameMode* AIGameMode = Cast<ABallCatchGameGameMode>(GameMode);
+					AGameModeBase* GameMode = AIController->GetWorld()->GetAuthGameMode();
+					ABallCatchGameGameMode* AIGameMode = Cast<ABallCatchGameGameMode>(GameMode);
 				
-				BallActor->SetActorRelativeLocation(FVector(0, 0, AIGameMode->GetAttachBallOffset()));
+					BallActor->SetActorRelativeLocation(FVector(0, 0, AIGameMode->GetAttachBallOffset()));
+				}
+
+				return SearchForBall;
 			}
 
-			return SearchForBall;
+			return GoToRandomPosition;
 		}
 	);
 
 	SearchForBall = MakeShared<FAivState>(
-		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
+		[this](AAIController* AIController, UBlackboardComponent* InBlackboard) {
+
 			AGameModeBase* GameMode = AIController->GetWorld()->GetAuthGameMode();
 			ABallCatchGameGameMode* AIGameMode = Cast<ABallCatchGameGameMode>(GameMode);
 			const TArray<ABall*>& BallsList = AIGameMode->GetGameBalls();
@@ -104,7 +113,7 @@ void AEnemyAIController::BeginPlay()
 				return GoToBall;
 			}
 			else {
-				return GoToStartPosition;
+				return WaitNextRoundStart;
 			}
 		}
 	);
@@ -164,9 +173,51 @@ void AEnemyAIController::BeginPlay()
 
 	StartLocation = GetPawn()->GetActorLocation();
 
-	GoToStartPosition = MakeShared<FAivState>(
+	GoToRandomPosition = MakeShared<FAivState>(
 		[this](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			AIController->MoveToLocation(StartLocation, 250.0f);
+			UNavigationSystemV1* NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+			if (NavSystem)
+			{
+				FNavLocation ResultLocation;
+				bool canBeReached = NavSystem->GetRandomReachablePointInRadius(StartLocation, 10000.0f, ResultLocation);
+				if (canBeReached)
+				{
+					AIController->MoveToLocation(ResultLocation.Location, 250.0f);
+				}
+			}
+				//AIController->MoveToLocation(StartLocation, 250.0f);
+			UE_LOG(LogTemp, Warning, TEXT("NAV SYS addio"));
+
+		},
+		nullptr,
+		[this](AAIController* AIController, UBlackboardComponent* InBlackboard, const float DeltaTime) -> TSharedPtr<FAivState> {
+
+			EPathFollowingStatus::Type State = AIController->GetMoveStatus();
+
+			if (State == EPathFollowingStatus::Moving)
+			{
+				return nullptr;
+			}
+
+			UNavigationSystemV1* NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+			if (NavSystem)
+			{
+				FNavLocation ResultLocation;
+				bool canBeReached = NavSystem->GetRandomReachablePointInRadius(StartLocation, 10000.0f, ResultLocation);
+				if (canBeReached)
+				{
+					AIController->MoveToLocation(ResultLocation.Location, 100.0f);
+				}
+			}
+
+			//return GoToPlayer;
+			return nullptr;
+		}
+	);
+
+	WaitNextRoundStart = MakeShared<FAivState>(
+		[this](AAIController* AIController, UBlackboardComponent* InBlackboard) {
+			AIController->MoveToLocation(StartLocation, 500.0f);
 		},
 		nullptr,
 		nullptr
@@ -197,10 +248,7 @@ void AEnemyAIController::Tick(float DeltaTime)
 
 void AEnemyAIController::TestFunc(FAIRequestID RequestID, EPathFollowingResult::Type Result)
 {
-	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingResult"), true);
-	//if (!EnumPtr) return NSLOCTEXT("Invalid", "Invalid", "Invalid");
-
-	UE_LOG(LogTemp, Warning, TEXT("Variabile: %s"), *(EnumPtr->GetDisplayNameTextByValue(Result).ToString()) );
+	Blackboard->SetValueAsEnum("PathResult", Result);
 
 	if (Result == EPathFollowingResult::Aborted || Result == EPathFollowingResult::Invalid)
 	{

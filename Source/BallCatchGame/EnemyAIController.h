@@ -82,13 +82,12 @@ protected:
 	TSharedPtr<FAivState> GoToBall;
 	TSharedPtr<FAivState> GrabBall;
 	TSharedPtr<FAivState> SearchForBall;
-	TSharedPtr<FAivState> GoToStartPosition;
+	TSharedPtr<FAivState> GoToRandomPosition;
+	TSharedPtr<FAivState> WaitNextRoundStart;
 
 	AEnemyAIController();
 	void BeginPlay() override;
 	void Tick(float DeltaTime) override;
-
-	//class ABall* BestBall;
 
 	FVector StartLocation;
 
@@ -96,6 +95,8 @@ protected:
 	TObjectPtr<UBlackboardData> BlackboardData;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<class UBlackboardKeyType_Object> BestBallType;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<class UBlackboardKeyType_Enum> PathFollowingType;
 
 	UFUNCTION()
 	void TestFunc(FAIRequestID RequestID, EPathFollowingResult::Type Result);
