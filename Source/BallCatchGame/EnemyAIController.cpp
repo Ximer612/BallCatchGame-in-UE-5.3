@@ -8,6 +8,7 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Enum.h"
 #include "NavigationSystem.h"
+#include "NavigationPath.h"
 
 AEnemyAIController::AEnemyAIController()
 {
@@ -17,19 +18,26 @@ AEnemyAIController::AEnemyAIController()
 	//ADD ENTRIES TO BLACKBOARD DATA
 	BlackboardData = NewObject<UBlackboardData>();
 
-	BestBallType = NewObject<UBlackboardKeyType_Object>();
-	BestBallType->BaseClass = AActor::StaticClass();
+	BestBallObjectType = NewObject<UBlackboardKeyType_Object>();
+	BestBallObjectType->BaseClass = AActor::StaticClass();
 	FBlackboardEntry BestBallEntry;
 	BestBallEntry.EntryName = "BestBall";
-	BestBallEntry.KeyType = BestBallType;
+	BestBallEntry.KeyType = BestBallObjectType;
 	BlackboardData->Keys.Add(std::move(BestBallEntry));
 
-	PathFollowingType = NewObject<UBlackboardKeyType_Enum>();
-	PathFollowingType->EnumType = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingResult"), true);
+	PathFollowingEnumType = NewObject<UBlackboardKeyType_Enum>();
+	PathFollowingEnumType->EnumType = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingResult"), true);
 	FBlackboardEntry PathFollowingEntry;
 	PathFollowingEntry.EntryName = "PathResult";
-	PathFollowingEntry.KeyType = PathFollowingType;
+	PathFollowingEntry.KeyType = PathFollowingEnumType;
 	BlackboardData->Keys.Add(std::move(PathFollowingEntry));
+
+	PlayerObjectType = NewObject<UBlackboardKeyType_Object>();
+	PlayerObjectType->BaseClass = AActor::StaticClass();
+	FBlackboardEntry PlayerEntry;
+	PlayerEntry.EntryName = "Player";
+	PlayerEntry.KeyType = PlayerObjectType;
+	BlackboardData->Keys.Add(std::move(PlayerEntry));
 
 	//
 
@@ -41,13 +49,16 @@ void AEnemyAIController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ReceiveMoveCompleted.AddDynamic(this, &AEnemyAIController::TestFunc);
+	ReceiveMoveCompleted.AddDynamic(this, &AEnemyAIController::SetBlackboardPathFollowingResult);
+	Blackboard->SetValueAsObject("Player", GetWorld()->GetFirstPlayerController()->GetPawn());
 
 	GoToPlayer = MakeShared<FAivState>(
-		[this](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			AIController->MoveToActor(AIController->GetWorld()->GetFirstPlayerController()->GetPawn(), 5.0f);
-
-
+		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
+			AActor* Player = Cast<AActor>(InBlackboard->GetValueAsObject("Player"));
+			if (Player)
+			{
+				AIController->MoveToActor(Player, 5.0f);
+			}
 		},
 		nullptr,
 		[this](AAIController* AIController, UBlackboardComponent* InBlackboard, const float DeltaTime) -> TSharedPtr<FAivState> {
@@ -65,12 +76,16 @@ void AEnemyAIController::BeginPlay()
 				if (BestBall)
 				{
 					AActor* BallActor = Cast<AActor>(BestBall);
-					BallActor->AttachToActor(AIController->GetWorld()->GetFirstPlayerController()->GetPawn(), FAttachmentTransformRules::KeepRelativeTransform, TEXT("hand_r"));
-				
-					AGameModeBase* GameMode = AIController->GetWorld()->GetAuthGameMode();
-					ABallCatchGameGameMode* AIGameMode = Cast<ABallCatchGameGameMode>(GameMode);
-				
-					BallActor->SetActorRelativeLocation(FVector(0, 0, AIGameMode->GetAttachBallOffset()));
+					AActor* Player = Cast<AActor>(InBlackboard->GetValueAsObject("Player"));
+					if (Player)
+					{
+						BallActor->AttachToActor(Player, FAttachmentTransformRules::KeepRelativeTransform, TEXT("hand_r"));
+
+						AGameModeBase* GameMode = AIController->GetWorld()->GetAuthGameMode();
+						ABallCatchGameGameMode* AIGameMode = Cast<ABallCatchGameGameMode>(GameMode);
+
+						BallActor->SetActorRelativeLocation(FVector(0, 0, AIGameMode->GetAttachBallOffset()));
+					}
 				}
 
 				return SearchForBall;
@@ -194,12 +209,23 @@ void AEnemyAIController::BeginPlay()
 
 			EPathFollowingStatus::Type State = AIController->GetMoveStatus();
 
+			UNavigationSystemV1* NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+
+			AActor* Player = Cast<AActor>(InBlackboard->GetValueAsObject("Player"));
+			if (Player)
+			{
+				UNavigationPath* NavPath = NavSystem->FindPathToLocationSynchronously(GetWorld(), AIController->GetPawn()->GetActorLocation(), Player->GetActorLocation(), NULL);
+				if (NavPath->IsValid())
+				{
+					return GoToPlayer;
+				}
+			}
+
 			if (State == EPathFollowingStatus::Moving)
 			{
 				return nullptr;
 			}
 
-			UNavigationSystemV1* NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
 			if (NavSystem)
 			{
 				FNavLocation ResultLocation;
@@ -246,13 +272,8 @@ void AEnemyAIController::Tick(float DeltaTime)
 
 }
 
-void AEnemyAIController::TestFunc(FAIRequestID RequestID, EPathFollowingResult::Type Result)
+void AEnemyAIController::SetBlackboardPathFollowingResult(FAIRequestID RequestID, EPathFollowingResult::Type Result)
 {
 	Blackboard->SetValueAsEnum("PathResult", Result);
-
-	if (Result == EPathFollowingResult::Aborted || Result == EPathFollowingResult::Invalid)
-	{
-		CurrentState = SearchForBall;
-	}
 
 }

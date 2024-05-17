@@ -94,10 +94,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UBlackboardData> BlackboardData;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<class UBlackboardKeyType_Object> BestBallType;
+	TObjectPtr<class UBlackboardKeyType_Object> BestBallObjectType;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<class UBlackboardKeyType_Enum> PathFollowingType;
+	TObjectPtr<class UBlackboardKeyType_Object> PlayerObjectType;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<class UBlackboardKeyType_Enum> PathFollowingEnumType;
 
 	UFUNCTION()
-	void TestFunc(FAIRequestID RequestID, EPathFollowingResult::Type Result);
+	void SetBlackboardPathFollowingResult(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 };
