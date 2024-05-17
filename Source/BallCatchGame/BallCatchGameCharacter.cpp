@@ -11,6 +11,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "BallCatchGameGameMode.h"
+#include "BallGameInterface.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -19,6 +21,8 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 ABallCatchGameCharacter::ABallCatchGameCharacter()
 {
+	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickEnabled(false);
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 		
@@ -66,7 +70,7 @@ ABallCatchGameCharacter::ABallCatchGameCharacter()
 	BallTriggerBox->SetVisibility(true);
 	BallTriggerBox->OnComponentBeginOverlap.AddDynamic(this, &ABallCatchGameCharacter::CatchBall);
 
-	bHasGameBall = false;
+	bCanAttack = false;
 }
 
 void ABallCatchGameCharacter::BeginPlay()
@@ -81,6 +85,26 @@ void ABallCatchGameCharacter::BeginPlay()
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
+	}
+
+	AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
+	ABallCatchGameGameMode* AIGameMode = Cast<ABallCatchGameGameMode>(GameMode);
+	OnStunEnemy.BindLambda([AIGameMode]() {
+		AIGameMode->DecreaseEnemiesToStunCount();
+		});
+
+}
+
+void ABallCatchGameCharacter::Tick(float DeltaTime)
+{
+	AttackingCounter -= DeltaTime;
+
+	if (AttackingCounter < 0)
+	{
+		SetActorTickEnabled(false);
+		bCanAttack = false;
+		SetActorScale3D({ 1.f, 1.f,1.f });
+		OnPowerUpEnd.ExecuteIfBound();
 	}
 }
 
@@ -146,8 +170,6 @@ void ABallCatchGameCharacter::Look(const FInputActionValue& Value)
 
 void ABallCatchGameCharacter::CatchBall(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	UE_LOG(LogTemp, Warning, TEXT("CatchBall!!"));
-
 	if (!OtherActor)
 	{
 		return;
@@ -157,11 +179,42 @@ void ABallCatchGameCharacter::CatchBall(UPrimitiveComponent* OverlappedComponent
 	{
 		OtherActor->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform, TEXT("hand_r"));
 		OtherActor->SetActorRelativeLocation({ 0,0,0 });
-		bHasGameBall = true;
+		OtherActor->SetActorHiddenInGame(true);
+		SetActorScale3D({ 1.3f, 1.3f,1.3f });
+		SetActorTickEnabled(true);
+		AttackingCounter = AttackingTimer;
+
+		if (bCanAttack)
+		{
+			return;
+		}
+
+		bCanAttack = true;
+		OnPowerUpStart.ExecuteIfBound();
+		UE_LOG(LogTemp, Warning, TEXT("CatchBall!!"));
+
+		ABallCatchGameGameMode* GameMode = Cast<ABallCatchGameGameMode>(GetWorld()->GetAuthGameMode());
+		if (GameMode)
+		{
+			GameMode->OnPlayerPowerUpStart.Broadcast();
+		}
 	}
-	else if (OtherActor->ActorHasTag(TEXT("Enemy")) && bHasGameBall)
+	else if (OtherActor->ActorHasTag(TEXT("Enemy")) && bCanAttack)
 	{
-		OtherActor->Destroy();
-		//OtherActor->ReceiveAnyDamage(1,UDamageType::Fire)
+		APawn* OtherPawn = Cast<APawn>(OtherActor);
+		if (OtherPawn)
+		{
+			if (OtherPawn->GetController()->Implements<UBallGameInterface>())
+			{
+				IBallGameInterface* StunActor = Cast<IBallGameInterface>(OtherPawn->GetController());
+				bool bIsStunned = StunActor->Execute_Stun(OtherPawn->GetController());
+				if (!bIsStunned)
+				{
+					OnStunEnemy.ExecuteIfBound();
+				}
+			}
+		}
+
+
 	}
 }

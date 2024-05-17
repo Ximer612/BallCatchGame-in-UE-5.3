@@ -15,6 +15,8 @@ class UBoxComponent;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
+DECLARE_DELEGATE(FOnPowerUp)
+DECLARE_DELEGATE(FOnStunEnemy)
 
 UCLASS(config=Game)
 class ABallCatchGameCharacter : public ACharacter
@@ -49,12 +51,17 @@ class ABallCatchGameCharacter : public ACharacter
 	UBoxComponent* BallTriggerBox;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CatchBall, meta = (AllowPrivateAccess = "true"))
-	bool bHasGameBall;
+	bool bCanAttack;
+
+	const float AttackingTimer{ 5.f };
+	float AttackingCounter;
 
 public:
 	ABallCatchGameCharacter();
+	FOnPowerUp OnPowerUpStart;
+	FOnPowerUp OnPowerUpEnd;
+	FOnStunEnemy OnStunEnemy;
 	
-
 protected:
 
 	/** Called for movement input */
@@ -72,6 +79,8 @@ protected:
 	
 	// To add mapping context
 	virtual void BeginPlay();
+
+	virtual void Tick(float DeltaTime) override;
 
 public:
 	/** Returns CameraBoom subobject **/

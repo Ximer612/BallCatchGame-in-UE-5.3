@@ -7,6 +7,7 @@
 #include "BallCatchGameGameMode.generated.h"
 
 DECLARE_MULTICAST_DELEGATE(FResetMatchDelegate)
+DECLARE_MULTICAST_DELEGATE(FOnCatchBallDelegate)
 
 UCLASS(minimalapi)
 class ABallCatchGameGameMode : public AGameModeBase
@@ -14,7 +15,9 @@ class ABallCatchGameGameMode : public AGameModeBase
 	GENERATED_BODY()
 
 protected:
-	float AttachBallZOffset = 40.0f;
+	float AttachBallZOffset;
+	int32 EnemiesToStun;
+	int32 CurrentEnemiesToStun;
 
 	TArray<class ATargetPoint*> TargetPoints;
 	TArray<class ABall*> GameBalls;
@@ -28,9 +31,11 @@ public:
 	void Tick(float DeltaTime) override;
 	float GetAttachBallOffset();
 	const TArray<class ABall*>& GetGameBalls() const;
+	void DecreaseEnemiesToStunCount();
 
 	FResetMatchDelegate OnResetMatch;
-
+	FOnCatchBallDelegate OnPlayerPowerUpStart;
+	FOnCatchBallDelegate OnPlayerPowerUpEnd;
 
 };
 

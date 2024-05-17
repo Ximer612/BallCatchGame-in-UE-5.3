@@ -4,35 +4,36 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "BallGameInterface.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "EnemyAIController.generated.h"
 
-struct FAivState : public TSharedFromThis<FAivState>
+struct FStateMachineState : public TSharedFromThis<FStateMachineState>
 {
 private:
 	TFunction<void(AAIController*, UBlackboardComponent*)> Enter;
 	TFunction<void(AAIController*, UBlackboardComponent*)> Exit;
-	TFunction<TSharedPtr<FAivState>(AAIController*, UBlackboardComponent*, const float)> Tick;
+	TFunction<TSharedPtr<FStateMachineState>(AAIController*, UBlackboardComponent*, const float)> Tick;
 public:
 
-	FAivState()
+	FStateMachineState()
 	{
 		Enter = nullptr;
 		Exit = nullptr;
 		Tick = nullptr;
 	}
 
-	FAivState(TFunction<void(AAIController*, UBlackboardComponent*)> InEnter = nullptr, TFunction<void(AAIController*, UBlackboardComponent*)> InExit = nullptr, TFunction<TSharedPtr<FAivState>(AAIController*, UBlackboardComponent*, const float)> InTick = nullptr)
+	FStateMachineState(TFunction<void(AAIController*, UBlackboardComponent*)> InEnter = nullptr, TFunction<void(AAIController*, UBlackboardComponent*)> InExit = nullptr, TFunction<TSharedPtr<FStateMachineState>(AAIController*, UBlackboardComponent*, const float)> InTick = nullptr)
 	{
 		Enter = InEnter;
 		Exit = InExit;
 		Tick = InTick;
 	}
 
-	FAivState(const FAivState& Other) = delete;
-	FAivState& operator=(const FAivState& Other) = delete;
-	FAivState(FAivState&& Other) = delete;
-	FAivState& operator=(FAivState&& Other) = delete;
+	FStateMachineState(const FStateMachineState& Other) = delete;
+	FStateMachineState& operator=(const FStateMachineState& Other) = delete;
+	FStateMachineState(FStateMachineState&& Other) = delete;
+	FStateMachineState& operator=(FStateMachineState&& Other) = delete;
 
 	void CallEnter(AAIController* AIController, UBlackboardComponent* Blackboard)
 	{
@@ -50,11 +51,11 @@ public:
 		}
 	}
 
-	TSharedPtr<FAivState> CallTick(AAIController* AIController, UBlackboardComponent* Blackboard, const float DeltaTime)
+	TSharedPtr<FStateMachineState> CallTick(AAIController* AIController, UBlackboardComponent* Blackboard, const float DeltaTime)
 	{
 		if (Tick)
 		{
-			TSharedPtr<FAivState> NewState = Tick(AIController, Blackboard, DeltaTime);
+			TSharedPtr<FStateMachineState> NewState = Tick(AIController, Blackboard, DeltaTime);
 
 			if (NewState != nullptr && NewState != AsShared())
 			{
@@ -68,22 +69,28 @@ public:
 	}
 };
 
+class UBlackboardKeyType_Object;
+class UBlackboardKeyType_Vector;
+class UBlackboardKeyType_Bool;
+class UBlackboardKeyType_Enum;
+
 /**
  * 
  */
 UCLASS()
-class BALLCATCHGAME_API AEnemyAIController : public AAIController
+class BALLCATCHGAME_API AEnemyAIController : public AAIController, public IBallGameInterface
 {
 	GENERATED_BODY()
 	
 protected:
-	TSharedPtr<FAivState> CurrentState;
-	TSharedPtr<FAivState> GoToPlayer;
-	TSharedPtr<FAivState> GoToBall;
-	TSharedPtr<FAivState> GrabBall;
-	TSharedPtr<FAivState> SearchForBall;
-	TSharedPtr<FAivState> GoToRandomPosition;
-	TSharedPtr<FAivState> WaitNextRoundStart;
+	TSharedPtr<FStateMachineState> CurrentState;
+	TSharedPtr<FStateMachineState> GoToPlayerState;
+	TSharedPtr<FStateMachineState> GoToBallState;
+	TSharedPtr<FStateMachineState> GrabBallState;
+	TSharedPtr<FStateMachineState> SearchForBallState;
+	TSharedPtr<FStateMachineState> GoToRandomPositionState;
+	TSharedPtr<FStateMachineState> IdleUntilNextRoundState;
+	TSharedPtr<FStateMachineState> EscapeFromPlayerState;
 
 	AEnemyAIController();
 	void BeginPlay() override;
@@ -94,12 +101,27 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UBlackboardData> BlackboardData;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<class UBlackboardKeyType_Object> BestBallObjectType;
+	TObjectPtr<UBlackboardKeyType_Object> BestBallObjectType;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<class UBlackboardKeyType_Object> PlayerObjectType;
+	TObjectPtr<UBlackboardKeyType_Object> PlayerObjectType;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<class UBlackboardKeyType_Enum> PathFollowingEnumType;
+	TObjectPtr<UBlackboardKeyType_Enum> PathFollowingEnumType;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UBlackboardKeyType_Vector> VectorType;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UBlackboardKeyType_Bool> BoolType;
 
 	UFUNCTION()
 	void SetBlackboardPathFollowingResult(FAIRequestID RequestID, EPathFollowingResult::Type Result);
+
+	void SwitchStateMachineState(TSharedPtr<FStateMachineState> NewState, bool bForceChange=false);
+
+
+public:
+	UFUNCTION()
+	void EscapeFromPlayer();
+	UFUNCTION()
+	void ResumeSearch();
+
+	bool Stun_Implementation() override;
 };
