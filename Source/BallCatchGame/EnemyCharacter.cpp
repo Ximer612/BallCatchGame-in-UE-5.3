@@ -31,6 +31,8 @@ AEnemyCharacter::AEnemyCharacter()
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
 
+	Tags.Add(TEXT("Enemy"));
+
 }
 
 // Called when the game starts or when spawned

@@ -11,6 +11,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
+class UBoxComponent;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -44,6 +45,12 @@ class ABallCatchGameCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CatchBall, meta = (AllowPrivateAccess = "true"))
+	UBoxComponent* BallTriggerBox;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CatchBall, meta = (AllowPrivateAccess = "true"))
+	bool bHasGameBall;
+
 public:
 	ABallCatchGameCharacter();
 	
@@ -55,7 +62,9 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
-			
+
+	UFUNCTION(BlueprintCallable)
+	void CatchBall(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 protected:
 	// APawn interface

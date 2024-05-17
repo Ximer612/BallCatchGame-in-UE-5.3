@@ -4,6 +4,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -52,6 +53,20 @@ ABallCatchGameCharacter::ABallCatchGameCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+
+	Tags.Add(TEXT("Player"));
+
+	BallTriggerBox = CreateDefaultSubobject<UBoxComponent>(FName("Ball Catch Trigger Box"));
+	BallTriggerBox->InitBoxExtent({ 20,40,70 });
+	BallTriggerBox->SetRelativeLocation({30,0,10});
+	BallTriggerBox->SetupAttachment(this->GetCapsuleComponent());
+	BallTriggerBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+	BallTriggerBox->SetGenerateOverlapEvents(true);
+	BallTriggerBox->bHiddenInGame = false;
+	BallTriggerBox->SetVisibility(true);
+	BallTriggerBox->OnComponentBeginOverlap.AddDynamic(this, &ABallCatchGameCharacter::CatchBall);
+
+	bHasGameBall = false;
 }
 
 void ABallCatchGameCharacter::BeginPlay()
@@ -126,5 +141,27 @@ void ABallCatchGameCharacter::Look(const FInputActionValue& Value)
 		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
+	}
+}
+
+void ABallCatchGameCharacter::CatchBall(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	UE_LOG(LogTemp, Warning, TEXT("CatchBall!!"));
+
+	if (!OtherActor)
+	{
+		return;
+	}
+
+	if (OtherActor->ActorHasTag(TEXT("GameBall")) && !OtherActor->GetAttachParentActor())
+	{
+		OtherActor->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform, TEXT("hand_r"));
+		OtherActor->SetActorRelativeLocation({ 0,0,0 });
+		bHasGameBall = true;
+	}
+	else if (OtherActor->ActorHasTag(TEXT("Enemy")) && bHasGameBall)
+	{
+		OtherActor->Destroy();
+		//OtherActor->ReceiveAnyDamage(1,UDamageType::Fire)
 	}
 }
