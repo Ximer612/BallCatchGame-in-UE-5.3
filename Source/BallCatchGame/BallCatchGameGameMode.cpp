@@ -12,7 +12,7 @@ ABallCatchGameGameMode::ABallCatchGameGameMode()
 {
 	// set default pawn class to our Blueprinted character
 	PrimaryActorTick.bCanEverTick = true;
-	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnBPClass(TEXT("/Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter"));
+	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnBPClass(TEXT("/Game/Blueprints/BP_MainCharacter"));
 	if (PlayerPawnBPClass.Class != NULL)
 	{
 		DefaultPawnClass = PlayerPawnBPClass.Class;

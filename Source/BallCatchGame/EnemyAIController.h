@@ -97,4 +97,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<class UBlackboardKeyType_Object> BestBallType;
 
+	UFUNCTION()
+	void TestFunc(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 };

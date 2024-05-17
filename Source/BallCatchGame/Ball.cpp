@@ -10,6 +10,7 @@ ABall::ABall()
 	PrimaryActorTick.bCanEverTick = false;
 	BallMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BallMesh"));
 	SetRootComponent(BallMesh);
+	Tags.Add(TEXT("GameBall"));
 }
 
 // Called when the game starts or when spawned

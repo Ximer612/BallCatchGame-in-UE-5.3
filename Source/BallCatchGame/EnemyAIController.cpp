@@ -30,11 +30,13 @@ void AEnemyAIController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	ReceiveMoveCompleted.AddDynamic(this, &AEnemyAIController::TestFunc);
+
 	GoToPlayer = MakeShared<FAivState>(
-		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
+		[this](AAIController* AIController, UBlackboardComponent* InBlackboard) {
 			AIController->MoveToActor(AIController->GetWorld()->GetFirstPlayerController()->GetPawn(), 10.0f);
 
-			//AIController->ReceiveMoveCompleted.Add( (*SearchForBall).CallEnter(AIController));
+
 		},
 		nullptr,
 		[this](AAIController* AIController, UBlackboardComponent* InBlackboard, const float DeltaTime) -> TSharedPtr<FAivState> {
@@ -44,6 +46,8 @@ void AEnemyAIController::BeginPlay()
 			{
 				return nullptr;
 			}
+
+			//UE_LOG(LogTemp, Warning, TEXT("Variabile: %s"), State);
 
 			// add that the player can get a ball, enemy run away
 			
@@ -174,7 +178,6 @@ void AEnemyAIController::BeginPlay()
 	AIGameMode->OnResetMatch.AddLambda(
 		[this]() -> void {
 			CurrentState = SearchForBall;
-			CurrentState->CallEnter(this, Blackboard);
 		});
 
 	CurrentState = SearchForBall;
@@ -188,6 +191,20 @@ void AEnemyAIController::Tick(float DeltaTime)
 	if (CurrentState)
 	{
 		CurrentState = CurrentState->CallTick(this,Blackboard, DeltaTime);
+	}
+
+}
+
+void AEnemyAIController::TestFunc(FAIRequestID RequestID, EPathFollowingResult::Type Result)
+{
+	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingResult"), true);
+	//if (!EnumPtr) return NSLOCTEXT("Invalid", "Invalid", "Invalid");
+
+	UE_LOG(LogTemp, Warning, TEXT("Variabile: %s"), *(EnumPtr->GetDisplayNameTextByValue(Result).ToString()) );
+
+	if (Result == EPathFollowingResult::Aborted || Result == EPathFollowingResult::Invalid)
+	{
+		CurrentState = SearchForBall;
 	}
 
 }
