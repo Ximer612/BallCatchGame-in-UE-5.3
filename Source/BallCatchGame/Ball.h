@@ -14,7 +14,7 @@ class BALLCATCHGAME_API ABall : public AActor
 public:	
 	// Sets default values for this actor's properties
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UStaticMeshComponent* BallMesh;
+	TObjectPtr<UStaticMeshComponent> BallMesh;
 
 	ABall();
 

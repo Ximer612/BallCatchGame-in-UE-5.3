@@ -192,12 +192,6 @@ void ABallCatchGameCharacter::CatchBall(UPrimitiveComponent* OverlappedComponent
 		bCanAttack = true;
 		OnPowerUpStart.ExecuteIfBound();
 		UE_LOG(LogAIBallCatchCharacter, Warning, TEXT("Catched a ball! Power up enabled!"));
-
-		ABallCatchGameGameMode* GameMode = Cast<ABallCatchGameGameMode>(GetWorld()->GetAuthGameMode());
-		if (GameMode)
-		{
-			GameMode->OnPlayerPowerUpStart.Broadcast();
-		}
 	}
 	else if (OtherActor->ActorHasTag(TEXT("Enemy")) && bCanAttack)
 	{

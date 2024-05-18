@@ -44,8 +44,8 @@ void ABallCatchGameGameMode::BeginPlay()
 
 	for (TActorIterator<AEnemyAIController> It(GetWorld()); It; ++It)
 	{
-		OnPlayerPowerUpStart.AddLambda([It]() { It->EscapeFromPlayer(); UE_LOG(LogTemp, Warning, TEXT("On Player OnPlayerPowerUpStart On Enemy!")); });
-		OnPlayerPowerUpEnd.AddLambda([It]() { It->ResumeSearch(); UE_LOG(LogTemp, Warning, TEXT("On Player OnPlayerPowerUpEnd On Enemy!")); });
+		OnPlayerPowerUpStart.AddLambda([It]() { It->EscapeFromPlayer(); UE_LOG(LogBallCatchGameMode, Warning, TEXT("On Player OnPlayerPowerUpStart On Enemy!")); });
+		OnPlayerPowerUpEnd.AddLambda([It]() { It->ResumeSearch(); UE_LOG(LogBallCatchGameMode, Warning, TEXT("On Player OnPlayerPowerUpEnd On Enemy!")); });
 		EnemiesToStun++;
 		ActorsSpawnLocations.Add(It->GetPawn()->GetActorLocation());
 	}
@@ -94,6 +94,9 @@ bool ABallCatchGameGameMode::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 {
 	if (FParse::Command(&Cmd, TEXT("ResetMatch")))
 	{
+		UE_LOG(LogBallCatchGameMode, Warning, TEXT("%p is the plaeyr"), InWorld->GetFirstPlayerController()->GetPawn());
+
+
 		if(FParse::Command(&Cmd, TEXT("WIN")))
 		{
 			//ResetMatch(true);

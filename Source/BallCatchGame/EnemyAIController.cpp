@@ -15,7 +15,7 @@ DEFINE_LOG_CATEGORY(LogEnemyAIController);
 
 AEnemyAIController::AEnemyAIController()
 {
-	UBlackboardComponent* ReturnComponent;
+	UBlackboardComponent* NewBlackboard;
 	Blackboard = CreateDefaultSubobject<UBlackboardComponent>(TEXT("BlackboardComp"));
 
 	//ADD ENTRIES TO BLACKBOARD DATA
@@ -61,8 +61,8 @@ AEnemyAIController::AEnemyAIController()
 
 	//
 
-	UseBlackboard(BlackboardData, ReturnComponent);
-	Blackboard = ReturnComponent;
+	UseBlackboard(BlackboardData, NewBlackboard);
+	Blackboard = NewBlackboard;
 }
 
 void AEnemyAIController::BeginPlay()

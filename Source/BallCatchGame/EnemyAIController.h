@@ -110,7 +110,7 @@ protected:
 	TObjectPtr<UBlackboardKeyType_Vector> VectorType;
 	TObjectPtr<UBlackboardKeyType_Bool> BoolType;
 
-	UFUNCTION()
+	UFUNCTION() //needed to be binded to a delegate
 	void SetBlackboardPathFollowingResult(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 
 	void SwitchStateMachineState(TSharedPtr<FStateMachineState> NewState, bool bBypassIdleState = false);
