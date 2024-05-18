@@ -8,6 +8,8 @@
 #include "Ball.h"
 #include "Engine/TargetPoint.h"
 
+DEFINE_LOG_CATEGORY(LogBallCatchGameMode);
+
 
 ABallCatchGameGameMode::ABallCatchGameGameMode()
 {
@@ -18,20 +20,26 @@ ABallCatchGameGameMode::ABallCatchGameGameMode()
 	{
 		DefaultPawnClass = PlayerPawnBPClass.Class;
 	}
-
-	EnemiesToStun = 0;
 }
 
 void ABallCatchGameGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ABallCatchGameCharacter* Player = Cast<ABallCatchGameCharacter>(GetWorld()->GetFirstPlayerController()->GetPawn());
+	APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
+
+	if (!PlayerPawn)
+	{
+		return;
+	}
+
+	ABallCatchGameCharacter* Player = Cast<ABallCatchGameCharacter>(PlayerPawn);
 
 	if (Player)
 	{
 		Player->OnPowerUpStart.BindLambda([this]() {OnPlayerPowerUpStart.Broadcast(); });
 		Player->OnPowerUpEnd.BindLambda([this]() {OnPlayerPowerUpEnd.Broadcast(); });
+		ActorsSpawnLocations.Add(PlayerPawn->GetActorLocation());
 	}
 
 	for (TActorIterator<AEnemyAIController> It(GetWorld()); It; ++It)
@@ -39,6 +47,7 @@ void ABallCatchGameGameMode::BeginPlay()
 		OnPlayerPowerUpStart.AddLambda([It]() { It->EscapeFromPlayer(); UE_LOG(LogTemp, Warning, TEXT("On Player OnPlayerPowerUpStart On Enemy!")); });
 		OnPlayerPowerUpEnd.AddLambda([It]() { It->ResumeSearch(); UE_LOG(LogTemp, Warning, TEXT("On Player OnPlayerPowerUpEnd On Enemy!")); });
 		EnemiesToStun++;
+		ActorsSpawnLocations.Add(It->GetPawn()->GetActorLocation());
 	}
 
 	ResetMatch();
@@ -56,10 +65,11 @@ void ABallCatchGameGameMode::Tick(float DeltaTime)
 		}
 	}
 
-	ResetMatch();
+	//Called if every game balls has been attached to player
+	ResetMatch(false);
 }
 
-float ABallCatchGameGameMode::GetAttachBallOffset()
+float ABallCatchGameGameMode::GetNewAttachBallOffset()
 {
 	AttachBallZOffset += 10.0f;
 	return AttachBallZOffset;
@@ -75,16 +85,58 @@ void ABallCatchGameGameMode::DecreaseEnemiesToStunCount()
 	CurrentEnemiesToStun--;
 	if (CurrentEnemiesToStun <= 0)
 	{
-		ResetMatch();
+		ResetMatch(true);
+		//Player win!
 	}
 }
 
-void ABallCatchGameGameMode::ResetMatch()
+bool ABallCatchGameGameMode::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
-	AttachBallZOffset = 10.f;
+	if (FParse::Command(&Cmd, TEXT("ResetMatch")))
+	{
+		if(FParse::Command(&Cmd, TEXT("WIN")))
+		{
+			//ResetMatch(true);
+			return true;
+		}
+
+		//ResetMatch(false);
+		return true;
+	}
+
+	return false;
+}
+
+void ABallCatchGameGameMode::ResetMatch(const bool bPlayerHasWin)
+{
+	//if (bPlayerHasWin)
+	//{
+	//	UE_LOG(LogBallCatchGameMode, Warning, TEXT("PLAYER HAS WIN!!!"));
+	//}
+	//else
+	//{
+	//	UE_LOG(LogBallCatchGameMode, Warning, TEXT("PLAYER HAS LOSE!!!"));
+	//}
+
+	AttachBallZOffset = StartAttachBallZOffset;
 	CurrentEnemiesToStun = EnemiesToStun;
+
 	TargetPoints.Empty();
 	GameBalls.Empty();
+
+	//RESET ACTORS LOCATIONS
+	APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
+
+	if (!PlayerPawn)
+	{
+		return;
+	}
+		PlayerPawn->SetActorLocation(ActorsSpawnLocations[0]);
+
+	for (TActorIterator<AEnemyAIController> It(GetWorld()); It; ++It)
+	{
+		It->GetPawn()->SetActorLocation(ActorsSpawnLocations[It.GetProgressNumerator()]);
+	}
 
 	for (TActorIterator<ATargetPoint> It(GetWorld()); It; ++It)
 	{

@@ -14,7 +14,8 @@ class UInputAction;
 class UBoxComponent;
 struct FInputActionValue;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogAIBallCatchCharacter, Log, All);
+
 DECLARE_DELEGATE(FOnPowerUp)
 DECLARE_DELEGATE(FOnStunEnemy)
 
@@ -53,7 +54,7 @@ class ABallCatchGameCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CatchBall, meta = (AllowPrivateAccess = "true"))
 	bool bCanAttack;
 
-	const float AttackingTimer{ 5.f };
+	const float AttackingTimer = 5.f;
 	float AttackingCounter;
 
 public:

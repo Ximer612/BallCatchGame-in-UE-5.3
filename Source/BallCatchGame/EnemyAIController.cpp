@@ -1,6 +1,4 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "EnemyAIController.h"
 #include "Ball.h"
 #include "Navigation/PathFollowingComponent.h"
@@ -12,6 +10,8 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Bool.h"
 #include "GameFramework/Character.h"
+
+DEFINE_LOG_CATEGORY(LogEnemyAIController);
 
 AEnemyAIController::AEnemyAIController()
 {
@@ -29,7 +29,7 @@ AEnemyAIController::AEnemyAIController()
 	BlackboardData->Keys.Add(std::move(BestBallEntry));
 
 	PathFollowingEnumType = NewObject<UBlackboardKeyType_Enum>();
-	PathFollowingEnumType->EnumType = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingResult"), true);
+	PathFollowingEnumType->EnumType = FindFirstObjectSafe<UEnum>(TEXT("EPathFollowingResult"));
 	FBlackboardEntry PathFollowingEntry;
 	PathFollowingEntry.EntryName = TEXT("PathResult");
 	PathFollowingEntry.KeyType = PathFollowingEnumType;
@@ -70,12 +70,13 @@ void AEnemyAIController::BeginPlay()
 	Super::BeginPlay();
 
 	ReceiveMoveCompleted.AddDynamic(this, &AEnemyAIController::SetBlackboardPathFollowingResult);
+
 	Blackboard->SetValueAsObject(TEXT("Player"), GetWorld()->GetFirstPlayerController()->GetPawn());
 	Blackboard->SetValueAsVector(TEXT("StartLocation"), GetPawn()->GetActorLocation());
 
 	GoToPlayerState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			UE_LOG(LogTemp, Warning, TEXT("GoToPlayerState!!!"));
+			//UE_LOG(LogEnemyAIController, Warning, TEXT("GoToPlayerState!!!"));
 			AActor* Player = Cast<AActor>(InBlackboard->GetValueAsObject(TEXT("Player")));
 			if (Player)
 			{
@@ -106,7 +107,7 @@ void AEnemyAIController::BeginPlay()
 						AGameModeBase* GameMode = AIController->GetWorld()->GetAuthGameMode();
 						ABallCatchGameGameMode* AIGameMode = Cast<ABallCatchGameGameMode>(GameMode);
 
-						BallActor->SetActorRelativeLocation(FVector(AIGameMode->GetAttachBallOffset(), 0, 0));
+						BallActor->SetActorRelativeLocation(FVector(AIGameMode->GetNewAttachBallOffset(), 0, 0));
 						BallActor->SetActorScale3D({ 0.1f,0.1f,0.1f });
 						InBlackboard->SetValueAsBool(TEXT("bHasBall"), false);
 					}
@@ -121,7 +122,6 @@ void AEnemyAIController::BeginPlay()
 
 	SearchForBallState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			UE_LOG(LogTemp, Warning, TEXT("SearchForBallState!!!"));
 			AGameModeBase* GameMode = AIController->GetWorld()->GetAuthGameMode();
 			ABallCatchGameGameMode* AIGameMode = Cast<ABallCatchGameGameMode>(GameMode);
 			const TArray<ABall*>& BallsList = AIGameMode->GetGameBalls();
@@ -156,7 +156,7 @@ void AEnemyAIController::BeginPlay()
 
 	GoToBallState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			UE_LOG(LogTemp, Warning, TEXT("GoToBallState!!!"));
+			//UE_LOG(LogEnemyAIController, Warning, TEXT("GoToBallState!!!"));
 			UObject* BestBall = InBlackboard->GetValueAsObject(TEXT("BestBall"));
 			AActor* BallActor = Cast<AActor>(BestBall);
 			AIController->MoveToActor(BallActor, 100.0f);
@@ -184,7 +184,7 @@ void AEnemyAIController::BeginPlay()
 	GrabBallState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GrabBallState!!!"));
+			//UE_LOG(LogEnemyAIController, Warning, TEXT("GrabBallState!!!"));
 			UObject* BestBall = InBlackboard->GetValueAsObject(TEXT("BestBall"));
 			AActor* BallActor = Cast<AActor>(BestBall);
 			if (BallActor->GetAttachParentActor())
@@ -218,7 +218,7 @@ void AEnemyAIController::BeginPlay()
 
 	GoToRandomPositionState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			UE_LOG(LogTemp, Warning, TEXT("GoToRandomPositionState!!!"));
+			//UE_LOG(LogEnemyAIController, Warning, TEXT("GoToRandomPositionState!!!"));
 			UNavigationSystemV1* NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(AIController->GetWorld());
 			if (NavSystem)
 			{
@@ -267,7 +267,7 @@ void AEnemyAIController::BeginPlay()
 
 	EscapeFromPlayerState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			UE_LOG(LogTemp, Warning, TEXT("EscapeFromPlayerState!!!"));
+			//UE_LOG(LogEnemyAIController, Warning, TEXT("EscapeFromPlayerState!!!"));
 			AActor* Player = Cast<AActor>(InBlackboard->GetValueAsObject(TEXT("Player")));
 
 			if (Player)
@@ -316,7 +316,7 @@ void AEnemyAIController::BeginPlay()
 
 	IdleUntilNextRoundState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			UE_LOG(LogTemp, Warning, TEXT("IdleUntilNextRoundState!!!"));
+			//UE_LOG(LogEnemyAIController, Warning, TEXT("IdleUntilNextRoundState!!!"));
 			AIController->MoveToLocation(InBlackboard->GetValueAsVector(TEXT("StartLocation")), 500.0f);
 		},
 		nullptr,
@@ -328,7 +328,7 @@ void AEnemyAIController::BeginPlay()
 
 	AIGameMode->OnResetMatch.AddLambda(
 		[this]() -> void {
-			UE_LOG(LogTemp, Warning, TEXT("OnResetMatch!!!"));
+			//UE_LOG(LogEnemyAIController, Warning, TEXT("OnResetMatch!!!"));
 			SwitchStateMachineState(SearchForBallState,true);
 		});
 
@@ -353,9 +353,9 @@ void AEnemyAIController::SetBlackboardPathFollowingResult(FAIRequestID RequestID
 
 }
 
-void AEnemyAIController::SwitchStateMachineState(TSharedPtr<FStateMachineState> NewState, bool bForceChange)
+void AEnemyAIController::SwitchStateMachineState(TSharedPtr<FStateMachineState> NewState, bool bBypassIdleState)
 {
-	if (!bForceChange)
+	if (!bBypassIdleState)
 	{
 		if (CurrentState == IdleUntilNextRoundState) return;
 	}
@@ -367,7 +367,7 @@ void AEnemyAIController::SwitchStateMachineState(TSharedPtr<FStateMachineState> 
 
 void AEnemyAIController::EscapeFromPlayer()
 {
-	UE_LOG(LogTemp, Warning, TEXT("ESCAPE!!!"));
+	//UE_LOG(LogEnemyAIController, Warning, TEXT("ESCAPE FROM PLAYER!!!"));
 
 	SwitchStateMachineState(EscapeFromPlayerState);
 
@@ -376,7 +376,7 @@ void AEnemyAIController::EscapeFromPlayer()
 
 void AEnemyAIController::ResumeSearch()
 {
-	UE_LOG(LogTemp, Warning, TEXT("RESUME!!!!"));
+	//UE_LOG(LogEnemyAIController, Warning, TEXT("RESUME SEARCH!!!!"));
 	Blackboard->SetValueAsBool(TEXT("bIsEscaping"), false);
 }
 

@@ -13,17 +13,3 @@ ABall::ABall()
 	Tags.Add(TEXT("GameBall"));
 }
 
-// Called when the game starts or when spawned
-void ABall::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-// Called every frame
-void ABall::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-

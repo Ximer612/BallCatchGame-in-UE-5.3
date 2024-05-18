@@ -6,37 +6,49 @@
 #include "GameFramework/GameModeBase.h"
 #include "BallCatchGameGameMode.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogBallCatchGameMode, Log, All);
+
 DECLARE_MULTICAST_DELEGATE(FResetMatchDelegate)
 DECLARE_MULTICAST_DELEGATE(FOnCatchBallDelegate)
 
+class ATargetPoint;
+class ABall;
+
 UCLASS(minimalapi)
-class ABallCatchGameGameMode : public AGameModeBase
+class ABallCatchGameGameMode : public AGameModeBase, public FSelfRegisteringExec
 {
 	GENERATED_BODY()
 
 protected:
+
+	const float StartAttachBallZOffset = 10.0f;
 	float AttachBallZOffset;
-	int32 EnemiesToStun;
+
+	int32 EnemiesToStun = 0;
 	int32 CurrentEnemiesToStun;
 
-	TArray<class ATargetPoint*> TargetPoints;
-	TArray<class ABall*> GameBalls;
+	TArray<FVector> ActorsSpawnLocations;
+	TArray<ATargetPoint*> TargetPoints;
+	TArray<ABall*> GameBalls;
 
-	void ResetMatch();
+
+	void ResetMatch(const bool bPlayerHasWin = false);
 
 public:
 	ABallCatchGameGameMode();
 
 	void BeginPlay() override;
 	void Tick(float DeltaTime) override;
-	float GetAttachBallOffset();
-	const TArray<class ABall*>& GetGameBalls() const;
+
+	float GetNewAttachBallOffset();
+	const TArray<ABall*>& GetGameBalls() const;
 	void DecreaseEnemiesToStunCount();
 
 	FResetMatchDelegate OnResetMatch;
 	FOnCatchBallDelegate OnPlayerPowerUpStart;
 	FOnCatchBallDelegate OnPlayerPowerUpEnd;
 
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 };
 
 

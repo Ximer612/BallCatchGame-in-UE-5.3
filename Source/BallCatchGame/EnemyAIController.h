@@ -69,6 +69,9 @@ public:
 	}
 };
 
+
+DECLARE_LOG_CATEGORY_EXTERN(LogEnemyAIController, Log, All);
+
 class UBlackboardKeyType_Object;
 class UBlackboardKeyType_Vector;
 class UBlackboardKeyType_Bool;
@@ -100,27 +103,21 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UBlackboardData> BlackboardData;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+
 	TObjectPtr<UBlackboardKeyType_Object> BestBallObjectType;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UBlackboardKeyType_Object> PlayerObjectType;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UBlackboardKeyType_Enum> PathFollowingEnumType;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UBlackboardKeyType_Vector> VectorType;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UBlackboardKeyType_Bool> BoolType;
 
 	UFUNCTION()
 	void SetBlackboardPathFollowingResult(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 
-	void SwitchStateMachineState(TSharedPtr<FStateMachineState> NewState, bool bForceChange=false);
+	void SwitchStateMachineState(TSharedPtr<FStateMachineState> NewState, bool bBypassIdleState = false);
 
 
 public:
-	UFUNCTION()
 	void EscapeFromPlayer();
-	UFUNCTION()
 	void ResumeSearch();
 
 	bool Stun_Implementation() override;

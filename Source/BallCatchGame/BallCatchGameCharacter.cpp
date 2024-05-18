@@ -14,7 +14,7 @@
 #include "BallCatchGameGameMode.h"
 #include "BallGameInterface.h"
 
-DEFINE_LOG_CATEGORY(LogTemplateCharacter);
+DEFINE_LOG_CATEGORY(LogAIBallCatchCharacter);
 
 //////////////////////////////////////////////////////////////////////////
 // ABallCatchGameCharacter
@@ -128,7 +128,7 @@ void ABallCatchGameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 	}
 	else
 	{
-		UE_LOG(LogTemplateCharacter, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
+		UE_LOG(LogAIBallCatchCharacter, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
 	}
 }
 
@@ -158,7 +158,7 @@ void ABallCatchGameCharacter::Move(const FInputActionValue& Value)
 void ABallCatchGameCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
-	FVector2D LookAxisVector = Value.Get<FVector2D>();
+	const FVector2D LookAxisVector = Value.Get<FVector2D>();
 
 	if (Controller != nullptr)
 	{
@@ -191,7 +191,7 @@ void ABallCatchGameCharacter::CatchBall(UPrimitiveComponent* OverlappedComponent
 
 		bCanAttack = true;
 		OnPowerUpStart.ExecuteIfBound();
-		UE_LOG(LogTemp, Warning, TEXT("CatchBall!!"));
+		UE_LOG(LogAIBallCatchCharacter, Warning, TEXT("Catched a ball! Power up enabled!"));
 
 		ABallCatchGameGameMode* GameMode = Cast<ABallCatchGameGameMode>(GetWorld()->GetAuthGameMode());
 		if (GameMode)
@@ -207,8 +207,8 @@ void ABallCatchGameCharacter::CatchBall(UPrimitiveComponent* OverlappedComponent
 			if (OtherPawn->GetController()->Implements<UBallGameInterface>())
 			{
 				IBallGameInterface* StunActor = Cast<IBallGameInterface>(OtherPawn->GetController());
-				bool bIsStunned = StunActor->Execute_Stun(OtherPawn->GetController());
-				if (!bIsStunned)
+				const bool bWasAlreadyStunned = StunActor->Execute_Stun(OtherPawn->GetController());
+				if (!bWasAlreadyStunned)
 				{
 					OnStunEnemy.ExecuteIfBound();
 				}
