@@ -16,7 +16,7 @@ struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAIBallCatchCharacter, Log, All);
 
-DECLARE_DELEGATE(FOnPowerUp)
+DECLARE_MULTICAST_DELEGATE(FOnPowerUp)
 DECLARE_DELEGATE(FOnStunEnemy)
 
 UCLASS(config=Game)
@@ -56,12 +56,15 @@ class ABallCatchGameCharacter : public ACharacter
 
 	const float AttackingTimer = 5.f;
 	float AttackingCounter;
+	const float DefaultWalkSpeed = 400.f;
+	const float PowerUpWalkSpeed = 600.f;
 
 public:
 	ABallCatchGameCharacter();
 	FOnPowerUp OnPowerUpStart;
 	FOnPowerUp OnPowerUpEnd;
 	FOnStunEnemy OnStunEnemy;
+	void CallPowerUpEnd();
 	
 protected:
 
@@ -74,7 +77,6 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void CatchBall(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
@@ -82,6 +84,7 @@ protected:
 	virtual void BeginPlay();
 
 	virtual void Tick(float DeltaTime) override;
+
 
 public:
 	/** Returns CameraBoom subobject **/

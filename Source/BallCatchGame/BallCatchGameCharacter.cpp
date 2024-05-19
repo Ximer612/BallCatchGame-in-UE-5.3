@@ -39,7 +39,7 @@ ABallCatchGameCharacter::ABallCatchGameCharacter()
 	// instead of recompiling to adjust them
 	GetCharacterMovement()->JumpZVelocity = 700.f;
 	GetCharacterMovement()->AirControl = 0.35f;
-	GetCharacterMovement()->MaxWalkSpeed = 500.f;
+	GetCharacterMovement()->MaxWalkSpeed = DefaultWalkSpeed;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
@@ -93,6 +93,8 @@ void ABallCatchGameCharacter::BeginPlay()
 		AIGameMode->DecreaseEnemiesToStunCount();
 		});
 
+	OnPowerUpStart.AddLambda([this]() { GetCharacterMovement()->MaxWalkSpeed = PowerUpWalkSpeed; });
+	OnPowerUpEnd.AddLambda([this]() {GetCharacterMovement()->MaxWalkSpeed = DefaultWalkSpeed; });
 }
 
 void ABallCatchGameCharacter::Tick(float DeltaTime)
@@ -101,11 +103,16 @@ void ABallCatchGameCharacter::Tick(float DeltaTime)
 
 	if (AttackingCounter < 0)
 	{
-		SetActorTickEnabled(false);
-		bCanAttack = false;
-		SetActorScale3D({ 1.f, 1.f,1.f });
-		OnPowerUpEnd.ExecuteIfBound();
+		CallPowerUpEnd();
 	}
+}
+
+void ABallCatchGameCharacter::CallPowerUpEnd()
+{
+	SetActorTickEnabled(false);
+	bCanAttack = false;
+	SetActorScale3D({ 1.f, 1.f,1.f });
+	OnPowerUpEnd.Broadcast();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -190,7 +197,7 @@ void ABallCatchGameCharacter::CatchBall(UPrimitiveComponent* OverlappedComponent
 		}
 
 		bCanAttack = true;
-		OnPowerUpStart.ExecuteIfBound();
+		OnPowerUpStart.Broadcast();
 		UE_LOG(LogAIBallCatchCharacter, Warning, TEXT("Catched a ball! Power up enabled!"));
 	}
 	else if (OtherActor->ActorHasTag(TEXT("Enemy")) && bCanAttack)

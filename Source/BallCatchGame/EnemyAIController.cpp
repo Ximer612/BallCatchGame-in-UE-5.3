@@ -1,15 +1,18 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #include "EnemyAIController.h"
 #include "Ball.h"
-#include "Navigation/PathFollowingComponent.h"
 #include "BallCatchGameGameMode.h"
+
+#include "Navigation/PathFollowingComponent.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Enum.h"
-#include "NavigationSystem.h"
-#include "NavigationPath.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Bool.h"
+#include "NavigationSystem.h"
+#include "NavigationPath.h"
+
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 DEFINE_LOG_CATEGORY(LogEnemyAIController);
 
@@ -370,14 +373,17 @@ void AEnemyAIController::EscapeFromPlayer()
 	//UE_LOG(LogEnemyAIController, Warning, TEXT("ESCAPE FROM PLAYER!!!"));
 
 	SwitchStateMachineState(EscapeFromPlayerState);
-
 	Blackboard->SetValueAsBool(TEXT("bIsEscaping"), true);
+
+	GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = EscapeWalkSpeed;
 }
 
 void AEnemyAIController::ResumeSearch()
 {
 	//UE_LOG(LogEnemyAIController, Warning, TEXT("RESUME SEARCH!!!!"));
 	Blackboard->SetValueAsBool(TEXT("bIsEscaping"), false);
+
+	GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = DefaultWalkSpeed;
 }
 
 bool AEnemyAIController::Stun_Implementation()

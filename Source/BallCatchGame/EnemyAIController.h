@@ -101,6 +101,9 @@ protected:
 
 	FVector StartLocation;
 
+	const float EscapeWalkSpeed = 400.0f;
+	const float DefaultWalkSpeed = 500.0f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UBlackboardData> BlackboardData;
 

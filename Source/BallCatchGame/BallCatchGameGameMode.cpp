@@ -37,9 +37,10 @@ void ABallCatchGameGameMode::BeginPlay()
 
 	if (Player)
 	{
-		Player->OnPowerUpStart.BindLambda([this]() {OnPlayerPowerUpStart.Broadcast(); });
-		Player->OnPowerUpEnd.BindLambda([this]() {OnPlayerPowerUpEnd.Broadcast(); });
+		Player->OnPowerUpStart.AddLambda([this]() {OnPlayerPowerUpStart.Broadcast(); });
+		Player->OnPowerUpEnd.AddLambda([this]() {OnPlayerPowerUpEnd.Broadcast(); });
 		ActorsSpawnLocations.Add(PlayerPawn->GetActorLocation());
+		OnResetMatch.AddLambda([Player]() {Player->CallPowerUpEnd(); });
 	}
 
 	for (TActorIterator<AEnemyAIController> It(GetWorld()); It; ++It)
@@ -94,16 +95,19 @@ bool ABallCatchGameGameMode::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 {
 	if (FParse::Command(&Cmd, TEXT("ResetMatch")))
 	{
-		UE_LOG(LogBallCatchGameMode, Warning, TEXT("%p is the plaeyr"), InWorld->GetFirstPlayerController()->GetPawn());
-
-
-		if(FParse::Command(&Cmd, TEXT("WIN")))
+		if (InWorld->WorldType == EWorldType::PIE)
 		{
-			//ResetMatch(true);
+			ABallCatchGameGameMode* CurrentGameMode = Cast<ABallCatchGameGameMode>(InWorld->GetAuthGameMode());
+
+			if(FParse::Command(&Cmd, TEXT("Win")))
+			{
+				CurrentGameMode->ResetMatch(true);
+				return true;
+			}
+
+			CurrentGameMode->ResetMatch();
 			return true;
 		}
-
-		//ResetMatch(false);
 		return true;
 	}
 
@@ -112,14 +116,11 @@ bool ABallCatchGameGameMode::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 
 void ABallCatchGameGameMode::ResetMatch(const bool bPlayerHasWin)
 {
-	//if (bPlayerHasWin)
-	//{
-	//	UE_LOG(LogBallCatchGameMode, Warning, TEXT("PLAYER HAS WIN!!!"));
-	//}
-	//else
-	//{
-	//	UE_LOG(LogBallCatchGameMode, Warning, TEXT("PLAYER HAS LOSE!!!"));
-	//}
+
+	if (bPlayerHasWin)
+	{
+		UE_LOG(LogBallCatchGameMode, Warning, TEXT("PLAYER HAS WIN!!!"));
+	}
 
 	AttachBallZOffset = StartAttachBallZOffset;
 	CurrentEnemiesToStun = EnemiesToStun;
