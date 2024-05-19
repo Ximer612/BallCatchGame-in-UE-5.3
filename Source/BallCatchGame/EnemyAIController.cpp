@@ -19,10 +19,11 @@ DEFINE_LOG_CATEGORY(LogEnemyAIController);
 AEnemyAIController::AEnemyAIController()
 {
 	UBlackboardComponent* NewBlackboard;
-	Blackboard = CreateDefaultSubobject<UBlackboardComponent>(TEXT("BlackboardComp"));
+	Blackboard = CreateDefaultSubobject<UBlackboardComponent>(TEXT("Blackboard Component"));
 
 	//ADD ENTRIES TO BLACKBOARD DATA
 	BlackboardData = NewObject<UBlackboardData>();
+	//BlackboardData = BlackboardData = CreateDefaultSubobject<UBlackboardData>(TEXT("Blackboard Data"));
 
 	BestBallObjectType = NewObject<UBlackboardKeyType_Object>();
 	BestBallObjectType->BaseClass = AActor::StaticClass();
@@ -102,7 +103,7 @@ void AEnemyAIController::BeginPlay()
 				if (BestBall)
 				{
 					AActor* BallActor = Cast<AActor>(BestBall);
-					ACharacter* Player = Cast<ACharacter>(InBlackboard->GetValueAsObject("Player"));
+					ACharacter* Player = Cast<ACharacter>(InBlackboard->GetValueAsObject(TEXT("Player")));
 					if (Player)
 					{
 						BallActor->AttachToComponent(Player->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, TEXT("head"));
