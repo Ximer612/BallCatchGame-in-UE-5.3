@@ -14,7 +14,7 @@
 #include "BallCatchGameGameMode.h"
 #include "BallGameInterface.h"
 
-DEFINE_LOG_CATEGORY(LogAIBallCatchCharacter);
+DEFINE_LOG_CATEGORY(BallCatchGameCharacterLog);
 
 //////////////////////////////////////////////////////////////////////////
 // ABallCatchGameCharacter
@@ -60,7 +60,7 @@ ABallCatchGameCharacter::ABallCatchGameCharacter()
 
 	Tags.Add(TEXT("Player"));
 
-	BallTriggerBox = CreateDefaultSubobject<UBoxComponent>(FName("Ball Catch Trigger Box"));
+	BallTriggerBox = CreateDefaultSubobject<UBoxComponent>(TEXT("Ball Catch Trigger Box"));
 	BallTriggerBox->InitBoxExtent({ 20,40,70 });
 	BallTriggerBox->SetRelativeLocation({30,0,10});
 	BallTriggerBox->SetupAttachment(this->GetCapsuleComponent());
@@ -87,12 +87,6 @@ void ABallCatchGameCharacter::BeginPlay()
 		}
 	}
 
-	AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
-	ABallCatchGameGameMode* AIGameMode = Cast<ABallCatchGameGameMode>(GameMode);
-	OnStunEnemy.BindLambda([AIGameMode]() {
-		AIGameMode->DecreaseEnemiesToStunCount();
-		});
-
 	OnPowerUpStart.AddLambda([this]() { GetCharacterMovement()->MaxWalkSpeed = PowerUpWalkSpeed; });
 	OnPowerUpEnd.AddLambda([this]() {GetCharacterMovement()->MaxWalkSpeed = DefaultWalkSpeed; });
 }
@@ -105,6 +99,12 @@ void ABallCatchGameCharacter::Tick(float DeltaTime)
 	{
 		CallPowerUpEnd();
 	}
+}
+
+bool ABallCatchGameCharacter::Stun_Implementation()
+{
+	OnStunned.ExecuteIfBound();
+	return false;
 }
 
 void ABallCatchGameCharacter::CallPowerUpEnd()
@@ -135,7 +135,7 @@ void ABallCatchGameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 	}
 	else
 	{
-		UE_LOG(LogAIBallCatchCharacter, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
+		UE_LOG(BallCatchGameCharacterLog, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
 	}
 }
 
@@ -198,7 +198,7 @@ void ABallCatchGameCharacter::CatchBall(UPrimitiveComponent* OverlappedComponent
 
 		bCanAttack = true;
 		OnPowerUpStart.Broadcast();
-		UE_LOG(LogAIBallCatchCharacter, Warning, TEXT("Catched a ball! Power up enabled!"));
+		UE_LOG(BallCatchGameCharacterLog, Warning, TEXT("Catched a ball! Power up enabled!"));
 	}
 	else if (OtherActor->ActorHasTag(TEXT("Enemy")) && bCanAttack)
 	{

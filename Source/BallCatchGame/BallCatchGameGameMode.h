@@ -6,7 +6,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "BallCatchGameGameMode.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogBallCatchGameMode, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(BallCatchGameCatchGameModeLog, Log, All);
 
 DECLARE_MULTICAST_DELEGATE(FResetMatchDelegate)
 DECLARE_MULTICAST_DELEGATE(FOnCatchBallDelegate)
@@ -26,6 +26,9 @@ protected:
 
 	int32 EnemiesToStun = 0;
 	int32 CurrentEnemiesToStun;
+
+	int32 MaxPlayerHP = 3;
+	int32 CurrentPlayerHP;
 
 	TArray<FVector> ActorsSpawnLocations;
 	TArray<ATargetPoint*> TargetPoints;

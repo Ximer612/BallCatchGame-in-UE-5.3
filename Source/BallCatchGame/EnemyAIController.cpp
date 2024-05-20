@@ -14,7 +14,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-DEFINE_LOG_CATEGORY(LogEnemyAIController);
+DEFINE_LOG_CATEGORY(BallCatchGameEnemyAIControllerLog);
 
 AEnemyAIController::AEnemyAIController()
 {
@@ -80,7 +80,7 @@ void AEnemyAIController::BeginPlay()
 
 	GoToPlayerState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			//UE_LOG(LogEnemyAIController, Warning, TEXT("GoToPlayerState!!!"));
+			UE_LOG(BallCatchGameEnemyAIControllerLog, Warning, TEXT("Enemy: %p -> GoToPlayerState!!!"), AIController);
 			AActor* Player = Cast<AActor>(InBlackboard->GetValueAsObject(TEXT("Player")));
 			if (Player)
 			{
@@ -114,6 +114,11 @@ void AEnemyAIController::BeginPlay()
 						BallActor->SetActorRelativeLocation(FVector(AIGameMode->GetNewAttachBallOffset(), 0, 0));
 						BallActor->SetActorScale3D({ 0.1f,0.1f,0.1f });
 						InBlackboard->SetValueAsBool(TEXT("bHasBall"), false);
+
+						if(Player->Implements<UBallGameInterface>()){
+							IBallGameInterface* StunActor = Cast<IBallGameInterface>(Player);
+							StunActor->Execute_Stun(Player);
+						}
 					}
 				}
 
@@ -126,6 +131,7 @@ void AEnemyAIController::BeginPlay()
 
 	SearchForBallState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
+			UE_LOG(BallCatchGameEnemyAIControllerLog, Warning, TEXT("Enemy: %p -> SearchForBallState!!!"), AIController);
 			AGameModeBase* GameMode = AIController->GetWorld()->GetAuthGameMode();
 			ABallCatchGameGameMode* AIGameMode = Cast<ABallCatchGameGameMode>(GameMode);
 			const TArray<ABall*>& BallsList = AIGameMode->GetGameBalls();
@@ -160,7 +166,7 @@ void AEnemyAIController::BeginPlay()
 
 	GoToBallState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			//UE_LOG(LogEnemyAIController, Warning, TEXT("GoToBallState!!!"));
+			UE_LOG(BallCatchGameEnemyAIControllerLog, Warning, TEXT("Enemy: %p -> GoToBallState!!!"), AIController);
 			UObject* BestBall = InBlackboard->GetValueAsObject(TEXT("BestBall"));
 			AActor* BallActor = Cast<AActor>(BestBall);
 			AIController->MoveToActor(BallActor, 100.0f);
@@ -186,9 +192,8 @@ void AEnemyAIController::BeginPlay()
 	);
 
 	GrabBallState = MakeShared<FStateMachineState>(
-		[](AAIController* AIController, UBlackboardComponent* InBlackboard)
-		{
-			//UE_LOG(LogEnemyAIController, Warning, TEXT("GrabBallState!!!"));
+		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
+			UE_LOG(BallCatchGameEnemyAIControllerLog, Warning, TEXT("Enemy: %p -> GrabBallState!!!"), AIController);
 			UObject* BestBall = InBlackboard->GetValueAsObject(TEXT("BestBall"));
 			AActor* BallActor = Cast<AActor>(BestBall);
 			if (BallActor->GetAttachParentActor())
@@ -222,7 +227,7 @@ void AEnemyAIController::BeginPlay()
 
 	GoToRandomPositionState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			//UE_LOG(LogEnemyAIController, Warning, TEXT("GoToRandomPositionState!!!"));
+			UE_LOG(BallCatchGameEnemyAIControllerLog, Warning, TEXT("Enemy: %p -> GoToRandomPositionState!!!"), AIController);
 			UNavigationSystemV1* NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(AIController->GetWorld());
 			if (NavSystem)
 			{
@@ -271,7 +276,7 @@ void AEnemyAIController::BeginPlay()
 
 	EscapeFromPlayerState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			//UE_LOG(LogEnemyAIController, Warning, TEXT("EscapeFromPlayerState!!!"));
+			UE_LOG(BallCatchGameEnemyAIControllerLog, Warning, TEXT("Enemy: %p -> EscapeFromPlayerState!!!"), AIController);
 			AActor* Player = Cast<AActor>(InBlackboard->GetValueAsObject(TEXT("Player")));
 
 			if (Player)
@@ -320,7 +325,7 @@ void AEnemyAIController::BeginPlay()
 
 	IdleUntilNextRoundState = MakeShared<FStateMachineState>(
 		[](AAIController* AIController, UBlackboardComponent* InBlackboard) {
-			//UE_LOG(LogEnemyAIController, Warning, TEXT("IdleUntilNextRoundState!!!"));
+			UE_LOG(BallCatchGameEnemyAIControllerLog, Warning, TEXT("Enemy: %p -> IdleUntilNextRoundState!!!"), AIController);
 			AIController->MoveToLocation(InBlackboard->GetValueAsVector(TEXT("StartLocation")), 500.0f);
 		},
 		nullptr,
@@ -332,7 +337,7 @@ void AEnemyAIController::BeginPlay()
 
 	AIGameMode->OnResetMatch.AddLambda(
 		[this]() -> void {
-			//UE_LOG(LogEnemyAIController, Warning, TEXT("OnResetMatch!!!"));
+			UE_LOG(BallCatchGameEnemyAIControllerLog, Warning, TEXT("Enemy: %p -> OnResetMatch!!!"), this);
 			SwitchStateMachineState(SearchForBallState,true);
 		});
 
@@ -371,7 +376,7 @@ void AEnemyAIController::SwitchStateMachineState(TSharedPtr<FStateMachineState> 
 
 void AEnemyAIController::EscapeFromPlayer()
 {
-	//UE_LOG(LogEnemyAIController, Warning, TEXT("ESCAPE FROM PLAYER!!!"));
+	UE_LOG(BallCatchGameEnemyAIControllerLog, Warning, TEXT("Enemy: %p -> ESCAPE FROM PLAYER!!!"), this);
 
 	SwitchStateMachineState(EscapeFromPlayerState);
 	Blackboard->SetValueAsBool(TEXT("bIsEscaping"), true);
@@ -381,7 +386,8 @@ void AEnemyAIController::EscapeFromPlayer()
 
 void AEnemyAIController::ResumeSearch()
 {
-	//UE_LOG(LogEnemyAIController, Warning, TEXT("RESUME SEARCH!!!!"));
+	UE_LOG(BallCatchGameEnemyAIControllerLog, Warning, TEXT("Enemy: %p -> RESUME SEARCH!!!!"), this);
+
 	Blackboard->SetValueAsBool(TEXT("bIsEscaping"), false);
 
 	GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = DefaultWalkSpeed;
@@ -405,7 +411,7 @@ bool AEnemyAIController::Stun_Implementation()
 		}
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("STUNNED!!!!"));
+	UE_LOG(LogTemp, Warning, TEXT("Enemy: %p -> STUNNED!!!!"), this);
 
 	return false;
 }

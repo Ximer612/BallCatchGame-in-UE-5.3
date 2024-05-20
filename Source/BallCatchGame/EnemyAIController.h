@@ -70,7 +70,7 @@ public:
 };
 
 
-DECLARE_LOG_CATEGORY_EXTERN(LogEnemyAIController, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(BallCatchGameEnemyAIControllerLog, Log, All);
 
 class UBlackboardKeyType_Object;
 class UBlackboardKeyType_Vector;

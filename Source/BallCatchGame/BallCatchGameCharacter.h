@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "BallGameInterface.h"
 #include "BallCatchGameCharacter.generated.h"
 
 class USpringArmComponent;
@@ -14,13 +15,13 @@ class UInputAction;
 class UBoxComponent;
 struct FInputActionValue;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogAIBallCatchCharacter, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(BallCatchGameCharacterLog, Log, All);
 
 DECLARE_MULTICAST_DELEGATE(FOnPowerUp)
-DECLARE_DELEGATE(FOnStunEnemy)
+DECLARE_DELEGATE(FOnStun)
 
 UCLASS(config=Game)
-class ABallCatchGameCharacter : public ACharacter
+class ABallCatchGameCharacter : public ACharacter, public IBallGameInterface
 {
 	GENERATED_BODY()
 
@@ -59,11 +60,13 @@ class ABallCatchGameCharacter : public ACharacter
 	const float DefaultWalkSpeed = 400.f;
 	const float PowerUpWalkSpeed = 600.f;
 
+
 public:
 	ABallCatchGameCharacter();
 	FOnPowerUp OnPowerUpStart;
 	FOnPowerUp OnPowerUpEnd;
-	FOnStunEnemy OnStunEnemy;
+	FOnStun OnStunEnemy;
+	FOnStun OnStunned;
 	void CallPowerUpEnd();
 	
 protected:
@@ -91,5 +94,7 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	bool Stun_Implementation() override;
 };
 

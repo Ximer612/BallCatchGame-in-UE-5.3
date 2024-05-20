@@ -8,7 +8,7 @@
 #include "Ball.h"
 #include "Engine/TargetPoint.h"
 
-DEFINE_LOG_CATEGORY(LogBallCatchGameMode);
+DEFINE_LOG_CATEGORY(BallCatchGameCatchGameModeLog);
 
 
 ABallCatchGameGameMode::ABallCatchGameGameMode()
@@ -37,16 +37,38 @@ void ABallCatchGameGameMode::BeginPlay()
 
 	if (Player)
 	{
-		Player->OnPowerUpStart.AddLambda([this]() {OnPlayerPowerUpStart.Broadcast(); });
-		Player->OnPowerUpEnd.AddLambda([this]() {OnPlayerPowerUpEnd.Broadcast(); });
+		Player->OnPowerUpStart.AddLambda(
+			[this]() {
+				OnPlayerPowerUpStart.Broadcast(); 
+			});
+		Player->OnPowerUpEnd.AddLambda(
+			[this]() {
+				OnPlayerPowerUpEnd.Broadcast(); 
+			});
 		ActorsSpawnLocations.Add(PlayerPawn->GetActorLocation());
-		OnResetMatch.AddLambda([Player]() {Player->CallPowerUpEnd(); });
+		OnResetMatch.AddLambda(
+			[Player]() {
+				Player->CallPowerUpEnd(); 
+			});
+		Player->OnStunEnemy.BindLambda(
+			[this]() {
+				DecreaseEnemiesToStunCount(); 
+			});
+		Player->OnStunned.BindLambda(
+			[this]() {
+				CurrentPlayerHP--; 
+				if (CurrentPlayerHP <= 0)
+				{
+					ResetMatch(false);
+					UE_LOG(BallCatchGameCatchGameModeLog, Warning, TEXT("PLAYER HAS LOSE!!!"));
+				}
+			});
 	}
 
 	for (TActorIterator<AEnemyAIController> It(GetWorld()); It; ++It)
 	{
-		OnPlayerPowerUpStart.AddLambda([It]() { It->EscapeFromPlayer(); UE_LOG(LogBallCatchGameMode, Warning, TEXT("On Player OnPlayerPowerUpStart On Enemy!")); });
-		OnPlayerPowerUpEnd.AddLambda([It]() { It->ResumeSearch(); UE_LOG(LogBallCatchGameMode, Warning, TEXT("On Player OnPlayerPowerUpEnd On Enemy!")); });
+		OnPlayerPowerUpStart.AddLambda([It]() { It->EscapeFromPlayer(); UE_LOG(BallCatchGameCatchGameModeLog, Warning, TEXT("On Player OnPlayerPowerUpStart On Enemy!")); });
+		OnPlayerPowerUpEnd.AddLambda([It]() { It->ResumeSearch(); UE_LOG(BallCatchGameCatchGameModeLog, Warning, TEXT("On Player OnPlayerPowerUpEnd On Enemy!")); });
 		EnemiesToStun++;
 		ActorsSpawnLocations.Add(It->GetPawn()->GetActorLocation());
 	}
@@ -116,14 +138,14 @@ bool ABallCatchGameGameMode::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 
 void ABallCatchGameGameMode::ResetMatch(const bool bPlayerHasWin)
 {
-
 	if (bPlayerHasWin)
 	{
-		UE_LOG(LogBallCatchGameMode, Warning, TEXT("PLAYER HAS WIN!!!"));
+		UE_LOG(BallCatchGameCatchGameModeLog, Warning, TEXT("PLAYER HAS WIN!!!"));
 	}
 
 	AttachBallZOffset = StartAttachBallZOffset;
 	CurrentEnemiesToStun = EnemiesToStun;
+	CurrentPlayerHP = MaxPlayerHP;
 
 	TargetPoints.Empty();
 	GameBalls.Empty();
