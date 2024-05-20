@@ -117,6 +117,7 @@ bool ABallCatchGameGameMode::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 {
 	if (FParse::Command(&Cmd, TEXT("ResetMatch")))
 	{
+		//Only during runtime
 		if (InWorld->WorldType == EWorldType::PIE)
 		{
 			ABallCatchGameGameMode* CurrentGameMode = Cast<ABallCatchGameGameMode>(InWorld->GetAuthGameMode());

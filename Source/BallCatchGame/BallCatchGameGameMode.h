@@ -27,7 +27,7 @@ protected:
 	int32 EnemiesToStun = 0;
 	int32 CurrentEnemiesToStun;
 
-	int32 MaxPlayerHP = 3;
+	const int32 MaxPlayerHP = 3;
 	int32 CurrentPlayerHP;
 
 	TArray<FVector> ActorsSpawnLocations;
