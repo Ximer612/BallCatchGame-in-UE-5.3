@@ -341,8 +341,7 @@ void AEnemyAIController::BeginPlay()
 			SwitchStateMachineState(SearchForBallState,true);
 		});
 
-	CurrentState = SearchForBallState;
-	CurrentState->CallEnter(this, Blackboard);
+	SwitchStateMachineState(SearchForBallState,true);
 }
 
 void AEnemyAIController::Tick(float DeltaTime)
@@ -369,7 +368,11 @@ void AEnemyAIController::SwitchStateMachineState(TSharedPtr<FStateMachineState> 
 		if (CurrentState == IdleUntilNextRoundState) return;
 	}
 
-	CurrentState->CallExit(this, Blackboard);
+	if (CurrentState)
+	{
+		CurrentState->CallExit(this, Blackboard);
+	}
+
 	CurrentState = NewState;
 	CurrentState->CallEnter(this, Blackboard);
 }
